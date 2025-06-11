@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import gsap from "gsap";
 
 export default function BlobCursor({
@@ -15,17 +15,29 @@ export default function BlobCursor({
   shadowOffsetY = 10,
   filterId = "blob",
   filterStdDeviation = 30,
-  filterColorMatrixValues = "1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 35 -10",
+  filterColorMatrixValues = "1 0 0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 0 0 35 -10",
   useFilter = true,
   fastDuration = 0.1,
   slowDuration = 0.5,
   fastEase = "power3.out",
   slowEase = "power1.out",
-  zIndex = 10, // Set lower than dock (e.g., dock uses 50)
+  zIndex = 10,
   children,
 }) {
   const containerRef = useRef(null);
   const blobsRef = useRef([]);
+  const [isLargeScreen, setIsLargeScreen] = useState(true);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsLargeScreen(window.innerWidth > 768); // Hide blob on screens <= 768px
+    };
+
+    checkScreenSize(); // Initial check
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   const updateOffset = useCallback(() => {
     if (!containerRef.current) return { left: 0, top: 0 };
@@ -35,6 +47,8 @@ export default function BlobCursor({
 
   const handleMove = useCallback(
     (e) => {
+      if (!isLargeScreen) return; // Disable blob movement on small screen
+
       const { left, top } = updateOffset();
       const x = "clientX" in e ? e.clientX : e.touches[0].clientX;
       const y = "clientY" in e ? e.clientY : e.touches[0].clientY;
@@ -50,7 +64,7 @@ export default function BlobCursor({
         });
       });
     },
-    [updateOffset, fastDuration, slowDuration, fastEase, slowEase]
+    [updateOffset, fastDuration, slowDuration, fastEase, slowEase, isLargeScreen]
   );
 
   useEffect(() => {
@@ -61,6 +75,20 @@ export default function BlobCursor({
       window.removeEventListener("touchmove", handleMove);
     };
   }, [handleMove]);
+
+  // Only disable blob on screens smaller than 640px (sm breakpoint)
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  useEffect(() => {
+    const checkScreen = () => setIsSmallScreen(window.innerWidth < 640);
+    checkScreen();
+    window.addEventListener("resize", checkScreen);
+    return () => window.removeEventListener("resize", checkScreen);
+  }, []);
+
+  if (isSmallScreen) {
+    return <>{children}</>;
+  }
 
   return (
     <div
@@ -81,9 +109,9 @@ export default function BlobCursor({
         </svg>
       )}
 
-      {/* Blob layers: pointer-events-none so they don't block content */}
+      {/* Blob layers */}
       <div
-        className="pointer-events-none absolute inset-0 overflow-hidden select-none cursor-default"
+        className="pointer-events-none absolute inset-0 overflow-visible select-none cursor-default"
         style={{ filter: useFilter ? `url(#${filterId})` : undefined }}
       >
         {Array.from({ length: trailCount }).map((_, i) => (
@@ -94,10 +122,11 @@ export default function BlobCursor({
             style={{
               width: sizes[i],
               height: sizes[i],
-              borderRadius: blobType === "circle" ? "50%" : "0",
-              backgroundColor: fillColor,
+              borderRadius: "50%", // Always circle
+              background: `radial-gradient(circle at 60% 40%, ${fillColor} 60%, #fff0 100%)`,
               opacity: opacities[i],
               boxShadow: `${shadowOffsetX}px ${shadowOffsetY}px ${shadowBlur}px 0 ${shadowColor}`,
+              transition: "background 0.3s",
             }}
           >
             <div
@@ -108,13 +137,15 @@ export default function BlobCursor({
                 top: (sizes[i] - innerSizes[i]) / 2,
                 left: (sizes[i] - innerSizes[i]) / 2,
                 backgroundColor: innerColor,
-                borderRadius: blobType === "circle" ? "50%" : "0",
+                borderRadius: "50%",
+                opacity: 0.7,
               }}
             />
           </div>
         ))}
       </div>
-      {/* Content wrapper: relative, full size, scrollable, interactive */}
+
+      {/* Content wrapper */}
       <div className="relative w-full h-full flex items-center justify-center pointer-events-auto overflow-auto">
         {children}
       </div>
