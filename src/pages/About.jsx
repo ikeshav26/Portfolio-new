@@ -71,7 +71,7 @@ const About = () => {
                     "Hi, I’m Keshav Gilhotra —18-year-old",
                   ],
                   autoStart: true,
-                  loop: false,
+                  loop: true,
                   cursor: "|",
                   delay: 50,
                 }}
