@@ -32,18 +32,7 @@ const App = () => {
           <div>
             <Header/>
           </div>
-          <div className="fixed inset-0 pointer-events-none z-0">
-            <Particles
-              particleColors={particleColors}
-              particleCount={200}
-              particleSpread={10}
-              speed={0.1}
-              particleBaseSize={100}
-              moveParticlesOnHover={true}
-              alphaParticles={false}
-              disableRotation={false}
-            />
-          </div>
+          
           {/* BlobCursor behind all content except Particles */}
           <BlobCursor
             className="fixed inset-0 w-full h-full z-0"
